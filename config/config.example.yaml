@@ -1,0 +1,65 @@
+# Copy this file to config.yaml and edit it.
+#   cp config/config.example.yaml config/config.yaml
+#
+# Windows paths: recommend using single quotes to avoid YAML escaping issues.
+# e.g. root_dir: 'D:\\lfm\\data\\domain\\SHINY\\raw_data'
+
+xnat:
+  base_url: "https://multi-x.com/xnat"
+  project: "Aneurysm_ISBI"
+
+  # --- Credentials ---
+  # Option A (recommended): keep secrets out of git, set env vars:
+  #   XNAT_ALIAS=...
+  #   XNAT_SECRET=...
+  # and leave these as null.
+  # You can put alias/secret here (simplest), or leave them null and use env vars.
+  # NOTE: config/config.yaml is gitignored by default to avoid leaking secrets.
+  alias: null   # e.g. "b2de9c3d-..."  (or keep null and set env XNAT_ALIAS)
+  secret: null  # e.g. "95NaN5..."    (or keep null and set env XNAT_SECRET)
+
+  # If your XNAT uses a normal public TLS certificate, keep true.
+  # If you see TLS/cert errors and you KNOW it's safe, you can set false.
+  verify_tls: true
+
+local_data:
+  root_dir: 'D:\\lfm\\data\\domain\\SHINY\\raw_data'
+  images_subdir: "images"
+  labels_vessel_subdir: "labels_vessel"
+  labels_aneurysm_subdir: "labels_aneurysm"
+
+upload:
+  resource: "RAW"
+  overwrite: true
+
+  # If true: each subject must have all 3 files (image + 2 labels) or it will fail.
+  # If false: upload whatever exists for that subject (still requires at least 1 file).
+  require_all_files: true
+
+  # Remote filenames (NO subfolders under subject resource)
+  remote_filenames:
+    image: "image.nii.gz"
+    labels_vessel: "labels_vessel.nii.gz"
+    labels_aneurysm: "labels_aneurysm.nii.gz"
+
+demographics:
+  # If true, will also set Subject-level demographics fields:
+  #   gender / handedness / yob
+  enabled: false
+
+  # Random assignment settings
+  mode: "random"         # currently supported: random
+  only_missing: true     # if true, do not overwrite existing values on XNAT
+
+  seed: 20250107         # set to any int for reproducibility
+  yob_min: 1940
+  yob_max: 1980
+
+  include_unknown: false # if true, small chance of "unknown"
+  unknown_probability: 0.05
+
+  # Save what was assigned to a CSV file (relative to repo root)
+  out_csv: "outputs/random_demographics.csv"
+
+run:
+  dry_run: false         # if true, prints what would be done but does not upload
