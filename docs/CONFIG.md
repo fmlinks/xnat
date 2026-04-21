@@ -1,17 +1,17 @@
-# 配置参考（config.yaml）
+# Configuration reference (`config.yaml`)
 
-本项目所有运行参数都由一个 YAML 配置文件驱动：
+All runtime parameters are driven by a single YAML configuration file.
 
-- 默认路径：`config/config.yaml`
-- 模板文件：`config/config.example.yaml`
+- Default path: `config/config.yaml`
+- Template: `config/config.example.yaml`
 
-第一次运行 `python run.py` 时，如果 `config/config.yaml` 不存在，会自动从模板生成并提示你编辑。
+On the first run (`python run.py`), if `config/config.yaml` does not exist, the program will create it from the template and ask you to edit it.
 
-> 提醒：`config/config.yaml` 默认已加入 `.gitignore`，避免把凭据提交到 GitHub。
+> Tip: `config/config.yaml` is included in `.gitignore` by default so you don't accidentally commit credentials.
 
 ---
 
-## 完整示例
+## Full example
 
 ```yaml
 xnat:
@@ -53,30 +53,31 @@ run:
 
 ---
 
-## xnat
+## `xnat`
 
 ### `xnat.base_url`
 
-- 类型：字符串
-- 例子：`https://multi-x.com/xnat`
+- Type: string
+- Example: `https://multi-x.com/xnat`
 
-注意：这是 **XNAT 的根路径**，通常以 `/xnat` 结尾。
+This must be the **XNAT base path** for REST API calls and typically ends with `/xnat`.
 
 ### `xnat.project`
 
-- 类型：字符串
-- 例子：`Aneurysm_ISBI`
+- Type: string
+- Example: `Aneurysm_ISBI`
 
-这是 XNAT Project 的 **Project ID**（一般等同于你在网页里看到的 project label）。
+The XNAT **Project ID** (usually what you see as the project label in the UI).
 
 ### `xnat.alias` / `xnat.secret`
 
-- 类型：字符串或 `null`
+- Type: string or `null`
 
-两种方式：
+Two recommended ways:
 
-1) 直接写入 config（最省事，但注意不要提交 GitHub）
-2) 留空（null），改用环境变量：
+1) Put them directly into `config.yaml` (simplest, but never commit the file)
+
+2) Keep them `null` in config and provide credentials via environment variables:
 
 ```powershell
 $env:XNAT_ALIAS="..."
@@ -85,115 +86,120 @@ $env:XNAT_SECRET="..."
 
 ### `xnat.verify_tls`
 
-- 类型：bool
-- 默认：`true`
+- Type: bool
+- Default: `true`
 
-如果你的 XNAT 是自签名证书且你明确知道安全，可设 `false`。
+If your XNAT uses a normal public TLS certificate, keep this as `true`.  
+Only set it to `false` if you **know** you need to bypass TLS verification (e.g. self-signed cert in a trusted internal network).
 
 ---
 
-## local_data
+## `local_data`
 
 ### `local_data.root_dir`
 
-- 类型：路径字符串
-- 例子：`D:\\lfm\\data\\domain\\SHINY\\raw_data`
+- Type: path string
+- Example: `D:\\lfm\\data\\domain\\SHINY\\raw_data`
 
-建议 Windows 下用**单引号**包住，并写双反斜杠 `\\`，避免 YAML 转义问题。
+On Windows, we recommend using **single quotes** and double backslashes (`\\`) to avoid YAML escaping issues.
 
 ### `images_subdir` / `labels_vessel_subdir` / `labels_aneurysm_subdir`
 
-默认就是你现在的数据结构：
+Defaults match the SHINY layout:
 
 - `images`
 - `labels_vessel`
 - `labels_aneurysm`
 
-如果你改了文件夹名字，可以在这里对应修改。
+If you rename local folders, update these values accordingly.
 
 ---
 
-## upload
+## `upload`
 
 ### `upload.resource`
 
-- 类型：字符串
-- 默认：`RAW`
+- Type: string
+- Default: `RAW`
 
-资源（resource）名字，上传的文件会放在：
+Subject-level resource name. Files will be uploaded under:
 
 `Project / Subject / Resources / <resource> / files`
 
 ### `upload.overwrite`
 
-- 类型：bool
-- 默认：`true`
+- Type: bool
+- Default: `true`
 
-是否允许覆盖远端同名文件。
+If `true`, uploads will overwrite existing remote files with the same name.
 
 ### `upload.require_all_files`
 
-- 类型：bool
-- 默认：`true`
+- Type: bool
+- Default: `true`
 
-控制「一个 subject 是否必须三份文件齐全」：
+Controls whether each subject must have all three files:
 
-- `true`：只要缺一个（image 或任一 label）就会报错/失败
-- `false`：会上传存在的文件（但至少需要存在 1 个文件）
+- `true`: subject must have **image + 2 labels**; otherwise the subject fails
+- `false`: upload whatever exists for that subject (still requires at least 1 file)
 
 ### `upload.remote_filenames`
 
-因为本地三份文件都叫 `<subject>.nii.gz`，会重名冲突，所以远端用三个固定文件名（可自定义）：
+Locally the three files are all named `<subject>.nii.gz`, so they would collide on XNAT if placed in the same folder.  
+Therefore, this tool uses fixed remote names (configurable):
 
-- `image` → 默认 `image.nii.gz`
-- `labels_vessel` → 默认 `labels_vessel.nii.gz`
-- `labels_aneurysm` → 默认 `labels_aneurysm.nii.gz`
+- `image` → default `image.nii.gz`
+- `labels_vessel` → default `labels_vessel.nii.gz`
+- `labels_aneurysm` → default `labels_aneurysm.nii.gz`
 
 ---
 
-## demographics
+## `demographics`
 
 ### `demographics.enabled`
 
-- 类型：bool
-- 默认：`false`
+- Type: bool
+- Default: `false`
 
-开启后，会对每个 subject 额外调用一次 XNAT REST API 写入：
+When enabled, the tool also sets these subject-level fields via the XNAT REST API:
 
-- `gender`（male/female/unknown）
-- `handedness`（right/left/unknown）
-- `yob`（year of birth）
+- `gender` (`male` / `female` / `unknown`)
+- `handedness` (`right` / `left` / `unknown`)
+- `yob` (year of birth)
 
 ### `demographics.mode`
 
-目前仅支持：
+Currently supported:
 
 - `random`
 
-（后续可以很容易扩展为从 CSV 读真实 demographic。）
+(It's straightforward to extend this to read demographics from a CSV if needed.)
 
 ### `demographics.only_missing`
 
-- `true`：只填空字段，不覆盖已有值（更安全）
-- `false`：每次都会用随机值覆盖
+- `true`: fill only empty fields (safer; does not overwrite existing values)
+- `false`: always overwrite with the generated values
 
 ### `demographics.seed`
 
-随机种子。设一个固定整数就能保证每次生成结果一致（便于复现实验）。
+Random seed for reproducibility.  
+Set any integer to ensure the same random assignments across runs.
 
 ### `demographics.out_csv`
 
-把分配结果写入 CSV（推荐打开），例如：
+Write assigned values to a CSV file (recommended), e.g.:
 
 - `outputs/random_demographics.csv`
 
+If the path is relative, it is resolved relative to the repo root.
+
 ---
 
-## run
+## `run`
 
 ### `run.dry_run`
 
-- 类型：bool
-- 默认：`false`
+- Type: bool
+- Default: `false`
 
-为 `true` 时只打印计划执行内容，不向 XNAT 发起写请求。
+If `true`, the tool prints planned actions without making any write requests to XNAT.

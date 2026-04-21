@@ -1,34 +1,35 @@
 # XNAT SHINY Bulk Uploader
 
-一个**可直接放到 GitHub** 的小工具：把本地三类 NIfTI（影像 + vessel label + aneurysm label）按 **Subject** 批量上传到 XNAT 的指定 **Project**，并且（可选）为每个 Subject 写入 demographics（`M/F`、`Hand`、`YOB`）。
+A small, **GitHub-ready** tool to bulk upload three NIfTI files per subject (image + vessel label + aneurysm label) into an XNAT **Project** (as *Subject-level resource files*).  
+Optionally, it can also populate basic demographics for each subject (**M/F**, **Hand**, **YOB** in the XNAT UI).
 
-> 适配你当前的数据结构：
->
-> - `raw_data/images/<subject>.nii.gz`
-> - `raw_data/labels_vessel/<subject>.nii.gz`
-> - `raw_data/labels_aneurysm/<subject>.nii.gz`
->
-> 上传到 XNAT 后：每个 subject 的同一个资源（resource，默认 `RAW`）里**不建子文件夹**，直接放 3 个文件。
+This repository is tailored for the following local layout:
+
+- `raw_data/images/<subject>.nii.gz`
+- `raw_data/labels_vessel/<subject>.nii.gz`
+- `raw_data/labels_aneurysm/<subject>.nii.gz`
+
+After upload, the three files are stored **without any subfolders** under the same subject resource (default: `RAW`).
 
 ---
 
-## 1. 功能特性
+## 1. Features
 
-- ✅ **一键批量上传**：自动遍历 subject、自动创建 subject、自动创建资源（resource）
-- ✅ **文件不建子目录**：直接上传到 subject 的 resource 根目录
-- ✅ **避免重名冲突**：本地三份文件都叫 `<subject>.nii.gz`，上传时会重命名为：
+- ✅ **One-command bulk upload**: auto-discover subjects, auto-create subjects, auto-create the subject resource
+- ✅ **No subfolders on XNAT**: files are placed directly under the resource root
+- ✅ **Avoid name collisions**: locally all three files are named `<subject>.nii.gz`. On XNAT they are renamed to:
   - `image.nii.gz`
   - `labels_vessel.nii.gz`
   - `labels_aneurysm.nii.gz`
-- ✅ **可选 demographics**：随机生成并写入 `gender / handedness / yob`（对应 UI 的 `M/F`、`Hand`、`YOB`）
-- ✅ **配置驱动**：把 XNAT 地址、项目名、数据路径、是否 overwrite、是否写 demographics 等都写到 `config.yaml`
-- ✅ **安全默认**：`config/config.yaml` 默认已加入 `.gitignore`，避免把凭据提交到 GitHub
+- ✅ **Optional demographics**: randomly generate and set `gender / handedness / yob` (shown as `M/F`, `Hand`, `YOB` in the UI)
+- ✅ **Config-driven**: XNAT URL, project ID, local paths, overwrite policy, demographics, etc. are controlled in `config.yaml`
+- ✅ **Safe-by-default**: `config/config.yaml` is included in `.gitignore` to avoid accidentally committing credentials
 
 ---
 
-## 2. 你的数据应当长这样（本地）
+## 2. Expected local data structure
 
-例如：
+Example (Windows):
 
 ```
 D:\lfm\data\domain\SHINY\raw_data
@@ -46,21 +47,21 @@ D:\lfm\data\domain\SHINY\raw_data
    └─ ...
 ```
 
-规则：同一个 subject（例如 `147`）在三个目录里都应该有同名文件 `147.nii.gz`。
+Rule: for the same subject (e.g. `147`) the file `147.nii.gz` should exist in **all three** folders.
 
-> Subject 列表默认来自 `images/*.nii.gz`。
+> The subject list is derived from `images/*.nii.gz` by default.
 
 ---
 
-## 3. 上传到 XNAT 后会变成什么（远端）
+## 3. What it looks like on XNAT after upload
 
-以 subject `147` 为例：
+Example for subject `147`:
 
-- Project：`Aneurysm_ISBI`
-- Subject：`147`
-- Resource：`RAW`（可配置）
+- Project: `Aneurysm_ISBI`
+- Subject: `147`
+- Resource: `RAW` (configurable)
 
-Resource 下文件（**没有任何子文件夹**）：
+Files inside the resource (**no subfolders**):
 
 ```
 image.nii.gz
@@ -68,29 +69,29 @@ labels_vessel.nii.gz
 labels_aneurysm.nii.gz
 ```
 
-为什么要改名？
+Why do we rename the files?
 
-- 因为本地三份文件都叫 `147.nii.gz`，如果直接放在同一目录会互相覆盖。
+- Because locally all three files are named `147.nii.gz`. If we uploaded them “as-is” into the same folder, they would overwrite each other.
 
 ---
 
-## 4. 快速开始（Windows / PowerShell）
+## 4. Quick start (Windows / PowerShell)
 
-### 4.1 前置要求
+### 4.1 Requirements
 
 - Windows 10/11
-- Python **3.9+**（建议 3.10/3.11）
-- 能访问你的 XNAT：例如 `https://multi-x.com/xnat/`
+- Python **3.9+** (recommended: 3.10 / 3.11)
+- Network access to your XNAT instance (e.g. `https://multi-x.com/xnat/`)
 
-### 4.2 克隆/解压 repo
+### 4.2 Clone / unzip the repo
 
-假设你把 repo 放到：
+Assume you place it at:
 
 ```
 C:\lfm\code\xnat-shiny-uploader
 ```
 
-### 4.3 创建虚拟环境并安装依赖
+### 4.3 Create a virtual environment and install dependencies
 
 ```powershell
 cd C:\lfm\code\xnat-shiny-uploader
@@ -102,35 +103,35 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4.4 第一次运行：自动生成 config.yaml
+### 4.4 First run: auto-create `config/config.yaml`
 
-你可以直接先跑一次：
+You can run once:
 
 ```powershell
 python run.py
 ```
 
-如果 `config/config.yaml` 不存在，程序会自动用 `config/config.example.yaml` 生成一个模板并退出，然后提示你去编辑。
+If `config/config.yaml` does not exist, the program will create it from `config/config.example.yaml` and exit, asking you to edit it.
 
-### 4.5 编辑配置文件（最重要的一步）
+### 4.5 Edit the configuration (most important step)
 
-打开：
+Open:
 
 ```
 config/config.yaml
 ```
 
-至少改这几项：
+At minimum, set:
 
-- `xnat.base_url`：例如 `https://multi-x.com/xnat`
-- `xnat.project`：例如 `Aneurysm_ISBI`
-- `local_data.root_dir`：例如 `D:\lfm\data\domain\SHINY\raw_data`
+- `xnat.base_url` (example: `https://multi-x.com/xnat`)
+- `xnat.project` (example: `Aneurysm_ISBI`)
+- `local_data.root_dir` (example: `D:\lfm\data\domain\SHINY\raw_data`)
 
-#### 凭据（alias/secret）怎么填？
+#### How to provide credentials (alias/secret)
 
-两种方式任选一种：
+Two options:
 
-**方式 A（最省事）：直接写进 config.yaml（注意不要提交到 GitHub）**
+**Option A (simplest): put them in `config.yaml` (do NOT commit them)**
 
 ```yaml
 xnat:
@@ -138,47 +139,45 @@ xnat:
   secret: "YOUR_SECRET"
 ```
 
-**方式 B（更安全，推荐）：用环境变量**
+**Option B (recommended): use environment variables**
 
 ```powershell
 $env:XNAT_ALIAS="YOUR_ALIAS"
 $env:XNAT_SECRET="YOUR_SECRET"
 ```
 
-然后 `config.yaml` 里保持 `alias: null` / `secret: null` 即可。
+…and keep `alias: null` / `secret: null` in `config.yaml`.
 
-### 4.6 一键上传
+### 4.6 One-command upload
 
-在 repo 根目录执行：
+From the repo root:
 
 ```powershell
 python run.py
 ```
 
-#### 你想更“傻瓜式”一点？（可选）
-
-本 repo 也提供了两个一键脚本：
-
-- Windows：双击或命令行运行 `scripts\windows\run.bat`
-- Linux/WSL/macOS：运行 `scripts/linux/run.sh`（首次需 `chmod +x scripts/linux/run.sh`）
-
-它们会自动创建 `.venv` 并安装依赖，然后执行 `run.py`。
-
-（可选）你也可以显式指定配置：
+Optional: explicitly specify the config path:
 
 ```powershell
 python run.py --config .\config\config.yaml
 ```
 
-### 4.7 只预演不上传（Dry run）
+### 4.7 Dry run (print actions, do not upload)
 
 ```powershell
 python run.py --dry-run
 ```
 
+### 4.8 “Super simple” one-click scripts (optional)
+
+- Windows: run `scripts\windows\run.bat`
+- Linux/WSL/macOS: run `scripts/linux/run.sh` (first time: `chmod +x scripts/linux/run.sh`)
+
+They will create `.venv`, install dependencies, and then run `run.py`.
+
 ---
 
-## 4.8 快速开始（Linux / WSL / macOS）
+## 5. Quick start (Linux / WSL / macOS)
 
 ```bash
 cd /path/to/xnat-shiny-uploader
@@ -192,32 +191,32 @@ pip install -r requirements.txt
 python run.py
 ```
 
-如果你在 WSL 中访问 Windows 磁盘，路径通常形如：
+If you are on WSL and your data is on a Windows drive, the path usually looks like:
 
-- Windows：`D:\lfm\data\...`
-- WSL：`/mnt/d/lfm/data/...`
+- Windows: `D:\lfm\data\...`
+- WSL: `/mnt/d/lfm/data/...`
 
-把 `config/config.yaml` 里的 `local_data.root_dir` 改为你的实际路径即可。
+Set `local_data.root_dir` accordingly.
 
 ---
 
-## 5. 可选：随机写入 demographics（M/F、Hand、YOB）
+## 6. Optional: populate random demographics (M/F, Hand, YOB)
 
-你截图里 Subjects 表格的 `M/F`、`Hand`、`YOB` 分别对应 XNAT Subject 的字段：
+In the XNAT Subjects table:
 
-- `gender`
-- `handedness`
-- `yob`
+- **M/F** maps to `gender`
+- **Hand** maps to `handedness`
+- **YOB** maps to `yob` (year of birth)
 
-在 `config/config.yaml` 里把 demographics 打开：
+Enable demographics in `config/config.yaml`:
 
 ```yaml
 demographics:
   enabled: true
-  mode: "random"         # 当前支持：random
-  only_missing: true     # true = 不覆盖已有值
+  mode: "random"         # supported: random
+  only_missing: true     # true = do not overwrite existing values
 
-  seed: 20250107         # 固定随机种子，便于复现
+  seed: 20250107         # fixed seed for reproducibility
   yob_min: 1940
   yob_max: 1980
 
@@ -227,55 +226,55 @@ demographics:
   out_csv: "outputs/random_demographics.csv"
 ```
 
-然后还是同一个命令：
+Then run the same command:
 
 ```powershell
 python run.py
 ```
 
-跑完会生成 `outputs/random_demographics.csv`（记录每个 subject 被分配的随机值，方便留档）。
+A CSV record will be written to `outputs/random_demographics.csv` (recommended for audit / reproducibility).
 
 ---
 
-## 6. 配置项说明（精简版）
+## 7. Key config options (short version)
 
-`config/config.yaml` 里最常用的配置：
+Common options in `config/config.yaml`:
 
-- `upload.resource`：资源名（默认 `RAW`）
-- `upload.overwrite`：是否覆盖远端同名文件（默认 `true`）
-- `upload.require_all_files`：
-  - `true`：缺一个就报错（默认）
-  - `false`：缺哪个就跳过哪个，但至少要有 1 个文件
+- `upload.resource`: resource name (default: `RAW`)
+- `upload.overwrite`: overwrite remote files with the same name (default: `true`)
+- `upload.require_all_files`:
+  - `true`: require all 3 files per subject (default)
+  - `false`: upload whatever exists (still requires at least 1 file)
 
-更完整说明见：`docs/CONFIG.md`
+Full explanation: see `docs/CONFIG.md`.
 
 ---
 
-## 7. 上传后如何验证（推荐你做一次）
+## 8. How to verify after upload (recommended)
 
-> 下面用 `curl.exe`（Windows 自带）举例。
+Examples below use `curl.exe` (available on Windows).
 
-先准备 AUTH：
+Prepare `AUTH`:
 
 ```powershell
 $AUTH="$env:XNAT_ALIAS`:$env:XNAT_SECRET"
 ```
 
-### 7.1 列出项目里的 subjects
+### 8.1 List subjects in the project
 
 ```powershell
 curl.exe -sS -u $AUTH "https://multi-x.com/xnat/data/projects/Aneurysm_ISBI/subjects?format=json"
 ```
 
-### 7.2 查看某个 subject 的 resource 文件列表（以 147 为例）
+### 8.2 List resource files for a subject (example: 147)
 
 ```powershell
 curl.exe -sS -u $AUTH "https://multi-x.com/xnat/data/projects/Aneurysm_ISBI/subjects/147/resources/RAW/files?format=json"
 ```
 
-你应该能看到 `image.nii.gz / labels_vessel.nii.gz / labels_aneurysm.nii.gz`。
+You should see `image.nii.gz / labels_vessel.nii.gz / labels_aneurysm.nii.gz`.
 
-### 7.3 查看 subject 的 demographics（以 147 为例）
+### 8.3 Check subject demographics (example: 147)
 
 ```powershell
 curl.exe -sS -u $AUTH "https://multi-x.com/xnat/data/projects/Aneurysm_ISBI/subjects/147?format=json"
@@ -283,53 +282,40 @@ curl.exe -sS -u $AUTH "https://multi-x.com/xnat/data/projects/Aneurysm_ISBI/subj
 
 ---
 
-## 8. 常见问题与排错
+## 9. Troubleshooting
 
-更完整排错见：`docs/TROUBLESHOOTING.md`。
+See `docs/TROUBLESHOOTING.md`.
 
-### 8.1 401/403
+Common issues:
 
-- 说明 alias/secret 不对，或该用户对 project 没权限
-
-### 8.2 404
-
-- 常见原因：`base_url` 没写对
-  - ✅ 正确：`https://multi-x.com/xnat`
-  - ❌ 错误：少了 `/xnat` 或者多了重复 `/xnat/xnat`
-
-### 8.3 200 但返回 HTML（不是 JSON）
-
-- 通常是 URL 路径写错，或访问了 Web 页面而不是 REST API
-
-### 8.4 文件很大、上传慢
-
-- 这是正常现象（NIfTI 很大）
-- 本工具默认是顺序上传（更稳），需要并行我也可以帮你扩展
+- **401/403**: wrong alias/secret or no permission on the project
+- **404**: wrong `base_url` (missing `/xnat` or duplicated `/xnat/xnat`)
+- **HTML response instead of JSON**: you are hitting the UI page, not the REST API
 
 ---
 
-## 9. 安全建议（强烈建议看）
+## 10. Security notes (important)
 
-- 不要把 `alias/secret` 提交到 GitHub
-- `config/config.yaml` 默认已 gitignore
-- 如果你曾把 secret 贴到聊天/日志里，请在 XNAT 里**轮换/撤销**那对 API key
+- Do **not** commit `alias/secret` to GitHub.
+- `config/config.yaml` is ignored by default (`.gitignore`).
+- If your secret was ever pasted into logs or chat, rotate/revoke it in XNAT.
 
 ---
 
-## 10. 目录结构
+## 11. Repo layout
 
 ```
 .
-├─ run.py                       # 一键入口（默认读 config/config.yaml）
+├─ run.py                       # entrypoint (reads config/config.yaml by default)
 ├─ config/
-│  ├─ config.example.yaml       # 配置模板
-│  └─ config.yaml               # 你自己的配置（gitignore）
+│  ├─ config.example.yaml       # template
+│  └─ config.yaml               # your local config (gitignored)
 ├─ src/xnat_shiny_uploader/
-│  ├─ main.py                   # 主流程
-│  ├─ upload.py                 # 上传逻辑
-│  ├─ demographics.py           # demographics 写入逻辑
-│  ├─ xnat_client.py            # requests 封装 + 重试
-│  └─ config.py                 # YAML 配置解析
+│  ├─ main.py                   # pipeline
+│  ├─ upload.py                 # upload logic
+│  ├─ demographics.py           # demographics logic
+│  ├─ xnat_client.py            # requests wrapper + retries
+│  └─ config.py                 # YAML config loader
 └─ docs/
    ├─ CONFIG.md
    └─ TROUBLESHOOTING.md

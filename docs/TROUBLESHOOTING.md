@@ -1,91 +1,91 @@
-# Troubleshooting / 常见报错排查
+# Troubleshooting
 
-这份文档主要帮助你在批量上传时快速定位问题。
+This document helps you quickly diagnose common issues during bulk uploads.
 
 ---
 
-## 1) 401 / 403（未授权 / 无权限）
+## 1) 401 / 403 (Unauthorized / Forbidden)
 
-典型表现：
+Typical symptoms:
 
 - HTTP 401 Unauthorized
 - HTTP 403 Forbidden
 
-排查建议：
+Checklist:
 
-1. 检查 alias/secret 是否正确
-2. 检查该账号是否对目标 Project 有权限（至少要能创建 subject 并上传 resource）
-3. 如果你之前把 secret 泄露到日志/聊天，建议在 XNAT 里撤销旧 key，重新生成一对
-
----
-
-## 2) 404（资源不存在 / base_url 错误）
-
-常见原因是 `xnat.base_url` 写错。
-
-例子：
-
-- ✅ 正确：`https://multi-x.com/xnat`
-- ❌ 错误：`https://multi-x.com/`（缺少 `/xnat`）
-- ❌ 错误：`https://multi-x.com/xnat/xnat`（重复了 `/xnat`）
-
-你可以用浏览器打开 `https://multi-x.com/xnat/` 看看是否能进入 XNAT UI。
+1. Verify `alias/secret` are correct
+2. Verify the account has permission on the target project (must be able to create subjects and upload resources)
+3. If credentials were leaked (chat/logs), rotate/revoke the old key in XNAT and generate a new one
 
 ---
 
-## 3) 返回 HTML 而不是 JSON
+## 2) 404 (Not Found / wrong `base_url`)
 
-有时你用 `curl` 验证接口，会看到返回的是 HTML 页面（比如一个 status page），不是 JSON。
+The most common reason is an incorrect `xnat.base_url`.
 
-典型原因：
+Examples:
 
-- URL 路径写错，访问到了 Web 页面而不是 REST API
-- 服务器反向代理/跳转导致
+- ✅ Correct: `https://multi-x.com/xnat`
+- ❌ Wrong: `https://multi-x.com/` (missing `/xnat`)
+- ❌ Wrong: `https://multi-x.com/xnat/xnat` (duplicated `/xnat`)
 
-建议：
-
-- 用浏览器确认 `base_url`
-- 用 `curl -i` 看响应头（状态码/Location/Content-Type）
+You can open `https://multi-x.com/xnat/` in a browser to confirm it loads the XNAT UI.
 
 ---
 
-## 4) 500（服务器内部错误）
+## 3) You get HTML instead of JSON
 
-XNAT 在某些情况下可能返回 500：
+When validating with `curl`, you might receive an HTML page (e.g. a status page) instead of JSON.
 
-- 服务器端异常
-- 上传的参数/字段不符合预期
+Typical causes:
 
-建议：
+- Wrong URL path (hitting the UI endpoint, not the REST API)
+- Reverse proxy redirects
 
-1. 先用 `--dry-run` 确认本地文件都齐全
-2. 尝试只对一个 subject 重跑（缩小范围）
-3. 联系 XNAT 管理员查看 server logs
+Suggestions:
+
+- Double-check `base_url`
+- Use `curl -i` to inspect response headers (status code / Location / Content-Type)
 
 ---
 
-## 5) “Missing files” / 本地缺文件
+## 4) 500 (Internal Server Error)
 
-如果你看到：
+XNAT may return 500 in some cases:
+
+- Server-side error
+- Unexpected parameters/fields
+
+Suggestions:
+
+1. Run with `--dry-run` first to make sure local files are present
+2. Re-run for a single subject to narrow down the problem
+3. Ask the XNAT admin to check server logs for the exact failure cause
+
+---
+
+## 5) “Missing files” (local files not present)
+
+If you see:
 
 - `Missing files (require_all_files=true)`
 
-说明某个 subject 在三类目录下没有都齐全。
+It means at least one subject does not have all three expected files.
 
-解决方案：
+Fix options:
 
-- 补齐缺失文件；或
-- 将 `config.yaml` 里 `upload.require_all_files: false`，允许缺哪个就跳过哪个（至少要有一个文件存在）。
+- Add the missing files; or
+- Set `upload.require_all_files: false` in `config.yaml` to upload whatever exists (still requires at least 1 file)
 
 ---
 
-## 6) 上传很慢 / 大文件超时
+## 6) Upload is slow / large files / timeouts
 
-NIfTI 通常很大，上传慢是正常的。
+NIfTI files can be large; slow uploads are normal.
 
-建议：
+Suggestions:
 
-- 确保网络稳定
-- 如果你有大量 subject（几百/几千），可以考虑：
-  - 分批上传
-  - 并行上传（需要改代码；如果你需要我可以帮你加一个并行参数）
+- Ensure network stability
+- For very large datasets (hundreds/thousands of subjects), consider:
+  - Uploading in batches
+  - Parallel uploads (requires code changes; if you want, we can add a parallelism option)
